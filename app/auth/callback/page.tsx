@@ -61,12 +61,23 @@ export default function AuthCallback() {
             return
           }
           console.log('✅ Profile created successfully!')
-        } else {
-          console.log('✅ Profile already exists')
         }
 
-        console.log('🚀 Redirecting to dashboard...')
-        router.push('/dashboard')
+        // Check if user has a username (not just a generated one)
+        const { data: profileCheck } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single()
+
+        // If no username or it's a generated one, redirect to setup
+        if (!profileCheck?.username || profileCheck.username.startsWith('user_')) {
+          console.log('🔄 Redirecting to username setup...')
+          router.push('/setup-username')
+        } else {
+          console.log('🚀 Redirecting to dashboard...')
+          router.push('/dashboard')
+        }
       } catch (err) {
         console.error('❌ Callback error:', err)
         setError('An unexpected error occurred')

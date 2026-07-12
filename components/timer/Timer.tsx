@@ -5,15 +5,17 @@ import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/context/AuthContext'
 import { format } from 'date-fns'
 import { Play, Pause, Square, RotateCcw, Clock, Calendar, Tag, Trash2, Edit2, Plus, Save, X } from 'lucide-react'
+import { CountdownTimer } from './CountdownTimer'
 
 interface TimerProps {
   categoryId: string
   categoryName: string
+  categoryColor?: string
   onSessionComplete?: () => void
   onCategoryDelete?: (categoryId: string) => void
 }
 
-export function Timer({ categoryId, categoryName, onSessionComplete, onCategoryDelete }: TimerProps) {
+export function Timer({ categoryId, categoryName, categoryColor, onSessionComplete, onCategoryDelete }: TimerProps) {
   const { user } = useAuth()
   const [isRunning, setIsRunning] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -400,326 +402,336 @@ export function Timer({ categoryId, categoryName, onSessionComplete, onCategoryD
   }
 
   return (
-    <div className="glass rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Tag className="w-5 h-5 text-maroon-600 dark:text-maroon-400" />
-          <h2 className="text-2xl font-bold gradient-text">{categoryName}</h2>
+    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+            <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${categoryColor || 'from-maroon-500 to-pink-500'}`}></div>
+            <h2 className="text-2xl font-bold text-maroon-800 dark:text-maroon-300">
+            {categoryName}
+            </h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="badge-maroon">
+            <span className="badge-maroon">
             {sessions.length} sessions
-          </span>
-          {onCategoryDelete && (
+            </span>
+            {onCategoryDelete && (
             <button
-              onClick={() => {
+                onClick={() => {
                 if (confirm(`Are you sure you want to delete the category "${categoryName}" and all its sessions?`)) {
-                  onCategoryDelete(categoryId)
+                    onCategoryDelete(categoryId)
                 }
-              }}
-              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition cursor-pointer"
-              title="Delete category"
+                }}
+                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition cursor-pointer"
+                title="Delete category"
             >
-              <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-4 h-4" />
             </button>
-          )}
+            )}
         </div>
-      </div>
-      
-      {/* Timer Display */}
-      <div className="text-center mb-6">
-        <div className="relative inline-block">
-          <div className={`text-6xl font-mono font-bold tracking-wider ${
-            isRunning ? 'text-maroon-600 dark:text-maroon-400' : 
-            isPaused ? 'text-gold-600 dark:text-gold-400' : 
-            'text-gray-400 dark:text-gray-500'
-          }`}>
-            {formatTime(seconds)}
-          </div>
-          {(isRunning || isPaused) && (
-            <div className="absolute -top-2 -right-2">
-              <span className={`inline-block w-3 h-3 rounded-full animate-pulse ${
-                isRunning ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></span>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Stopwatch Section */}
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+            <div className="text-center mb-4">
+            <div className="relative inline-block">
+                <div className={`text-5xl font-mono font-bold tracking-wider ${
+                isRunning ? 'text-maroon-600 dark:text-maroon-400' : 
+                isPaused ? 'text-gold-600 dark:text-gold-400' : 
+                'text-gray-400 dark:text-gray-500'
+                }`}>
+                {formatTime(seconds)}
+                </div>
+                {(isRunning || isPaused) && (
+                <div className="absolute -top-2 -right-2">
+                    <span className={`inline-block w-3 h-3 rounded-full animate-pulse ${
+                    isRunning ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}></span>
+                </div>
+                )}
             </div>
-          )}
-        </div>
-      </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">⏱️ Stopwatch</p>
+            </div>
 
-      {/* Controls */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="What are you doing?"
-          value={sessionName}
-          onChange={(e) => setSessionName(e.target.value)}
-          className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200"
-          disabled={isRunning || isPaused}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-3 justify-center mb-6">
-        {!isRunning && !isPaused && (
-          <>
-            <button
-              onClick={startTimer}
-              className="bg-maroon-600 hover:bg-maroon-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <Play className="w-5 h-5" /> Start
-            </button>
-            <button
-              onClick={() => setShowManualEntry(!showManualEntry)}
-              className="bg-gold-500 hover:bg-gold-600 text-maroon-900 font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <Plus className="w-5 h-5" /> Add Manual
-            </button>
-          </>
-        )}
-        
-        {isRunning && !isPaused && (
-          <>
-            <button
-              onClick={pauseTimer}
-              className="bg-gold-500 hover:bg-gold-600 text-maroon-900 font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <Pause className="w-5 h-5" /> Pause
-            </button>
-            <button
-              onClick={stopTimer}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <Square className="w-5 h-5" /> Stop & Save
-            </button>
-          </>
-        )}
-        
-        {isPaused && (
-          <>
-            <button
-              onClick={resumeTimer}
-              className="bg-maroon-600 hover:bg-maroon-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <RotateCcw className="w-5 h-5" /> Resume
-            </button>
-            <button
-              onClick={stopTimer}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 px-6 py-3 cursor-pointer"
-            >
-              <Square className="w-5 h-5" /> Stop & Save
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Manual Time Entry */}
-      {showManualEntry && (
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-          <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4" /> Add Manual Time
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="mb-3">
             <input
-              type="text"
-              placeholder="Session name"
-              value={manualSessionName}
-              onChange={(e) => setManualSessionName(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                type="text"
+                placeholder="Session name..."
+                value={sessionName}
+                onChange={(e) => setSessionName(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200"
+                disabled={isRunning || isPaused}
+            />
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center">
+            {!isRunning && !isPaused && (
+                <>
+                <button
+                    onClick={startTimer}
+                    className="bg-maroon-600 hover:bg-maroon-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <Play className="w-4 h-4" /> Start
+                </button>
+                <button
+                    onClick={() => setShowManualEntry(!showManualEntry)}
+                    className="bg-gold-500 hover:bg-gold-600 text-maroon-900 font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <Plus className="w-4 h-4" /> Manual
+                </button>
+                </>
+            )}
+            
+            {isRunning && !isPaused && (
+                <>
+                <button
+                    onClick={pauseTimer}
+                    className="bg-gold-500 hover:bg-gold-600 text-maroon-900 font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <Pause className="w-4 h-4" /> Pause
+                </button>
+                <button
+                    onClick={stopTimer}
+                    className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <Square className="w-4 h-4" /> Stop
+                </button>
+                </>
+            )}
+            
+            {isPaused && (
+                <>
+                <button
+                    onClick={resumeTimer}
+                    className="bg-maroon-600 hover:bg-maroon-700 text-white font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <RotateCcw className="w-4 h-4" /> Resume
+                </button>
+                <button
+                    onClick={stopTimer}
+                    className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-1.5 cursor-pointer text-sm"
+                >
+                    <Square className="w-4 h-4" /> Stop
+                </button>
+                </>
+            )}
+            </div>
+        </div>
+
+        {/* Countdown Section */}
+        <div>
+            <CountdownTimer />
+        </div>
+        </div>
+
+        {/* Manual Time Entry */}
+        {showManualEntry && (
+        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+            <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4" /> Add Manual Time
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input
+                type="text"
+                placeholder="Session name"
+                value={manualSessionName}
+                onChange={(e) => setManualSessionName(e.target.value)}
+                className="px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
             />
             <input
-              type="date"
-              value={manualDate}
-              onChange={(e) => setManualDate(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+                className="px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
             />
             <div className="flex gap-2">
-              <input
+                <input
                 type="number"
                 min="0"
                 max="99"
                 value={manualHours}
                 onChange={(e) => setManualHours(e.target.value)}
                 placeholder="Hours"
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
-              />
-              <span className="flex items-center text-gray-500 dark:text-gray-400">h</span>
-              <input
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                />
+                <span className="flex items-center text-gray-500 dark:text-gray-400 text-sm">h</span>
+                <input
                 type="number"
                 min="0"
                 max="59"
                 value={manualMinutes}
                 onChange={(e) => setManualMinutes(e.target.value)}
                 placeholder="Minutes"
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
-              />
-              <span className="flex items-center text-gray-500 dark:text-gray-400">m</span>
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500"
+                />
+                <span className="flex items-center text-gray-500 dark:text-gray-400 text-sm">m</span>
             </div>
             <div className="flex gap-2">
-              <button
+                <button
                 onClick={addManualTime}
-                className="flex-1 bg-maroon-600 hover:bg-maroon-700 text-white px-4 py-2 rounded-lg transition cursor-pointer"
-              >
+                className="flex-1 bg-maroon-600 hover:bg-maroon-700 text-white px-4 py-2 rounded-lg transition cursor-pointer text-sm"
+                >
                 Add
-              </button>
-              <button
+                </button>
+                <button
                 onClick={() => setShowManualEntry(false)}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition cursor-pointer"
-              >
+                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition cursor-pointer text-sm"
+                >
                 Cancel
-              </button>
+                </button>
             </div>
-          </div>
+            </div>
         </div>
-      )}
+        )}
 
-      {/* Recent Sessions */}
-      <div>
+        {/* Recent Sessions */}
+        <div className="mt-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4" /> Recent Sessions
-          </h3>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
+            </h3>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
             {sessions.filter(s => s.status === 'completed').length} completed
-          </span>
+            </span>
         </div>
         
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-          {sessions.filter(s => s.status === 'completed' || s.status === 'paused').map((session) => (
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            {sessions.filter(s => s.status === 'completed' || s.status === 'paused').map((session) => (
             <div 
-              key={session.id} 
-              className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group"
+                key={session.id} 
+                className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition group"
             >
-              {editingSessionId === session.id ? (
+                {editingSessionId === session.id ? (
                 <div className="flex-1 flex flex-col sm:flex-row gap-2">
-                  <input
+                    <input
                     type="text"
                     value={editSessionName}
                     onChange={(e) => setEditSessionName(e.target.value)}
-                    className="flex-1 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"
-                  />
-                  <div className="flex items-center gap-1">
+                    className="flex-1 px-2 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"
+                    />
+                    <div className="flex items-center gap-1">
                     <input
-                      type="number"
-                      min="0"
-                      value={editHours}
-                      onChange={(e) => setEditHours(e.target.value)}
-                      className="w-12 px-1 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-center"
+                        type="number"
+                        min="0"
+                        value={editHours}
+                        onChange={(e) => setEditHours(e.target.value)}
+                        className="w-10 px-1 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-center"
                     />
                     <span className="text-xs text-gray-500">h</span>
                     <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      value={editMinutes}
-                      onChange={(e) => setEditMinutes(e.target.value)}
-                      className="w-12 px-1 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-center"
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={editMinutes}
+                        onChange={(e) => setEditMinutes(e.target.value)}
+                        className="w-10 px-1 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-center"
                     />
                     <span className="text-xs text-gray-500">m</span>
                     <button
-                      onClick={saveEdit}
-                      className="p-1 text-green-600 hover:text-green-700 cursor-pointer"
+                        onClick={saveEdit}
+                        className="p-1 text-green-600 hover:text-green-700 cursor-pointer"
                     >
-                      <Save className="w-4 h-4" />
+                        <Save className="w-3 h-3" />
                     </button>
                     <button
-                      onClick={() => setEditingSessionId(null)}
-                      className="p-1 text-red-600 hover:text-red-700 cursor-pointer"
+                        onClick={() => setEditingSessionId(null)}
+                        className="p-1 text-red-600 hover:text-red-700 cursor-pointer"
                     >
-                      <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                     </button>
-                  </div>
+                    </div>
                 </div>
-              ) : (
+                ) : (
                 <>
-                  <div className="flex-1">
+                    <div className="flex-1">
                     <div className="font-medium text-sm text-gray-800 dark:text-gray-200">
-                      {session.name}
+                        {session.name}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {format(new Date(session.created_at), 'MMM d, yyyy')}
-                      </span>
-                      <span>
+                        </span>
+                        <span>
                         {session.status === 'paused' ? '⏸️ Paused' : '✅ Done'}
-                      </span>
+                        </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {/* UPDATED: Now shows hours, minutes, and seconds */}
+                    </div>
+                    <div className="flex items-center gap-2">
                     <div className="text-sm font-semibold text-maroon-600 dark:text-maroon-400">
-                      {session.duration_seconds ? formatTimeFull(session.duration_seconds) : 'In progress'}
+                        {session.duration_seconds ? formatTimeFull(session.duration_seconds) : 'In progress'}
                     </div>
                     {session.status === 'completed' && (
-                      <>
+                        <>
                         <button
-                          onClick={() => startEditing(session)}
-                          className="p-1 text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                          title="Edit session"
+                            onClick={() => startEditing(session)}
+                            className="p-1 text-blue-500 hover:text-blue-700 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                            title="Edit session"
                         >
-                          <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => {
+                            onClick={() => {
                             setSessionToDelete(session.id)
                             setShowDeleteConfirm(true)
-                          }}
-                          className="p-1 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition cursor-pointer"
-                          title="Delete session"
+                            }}
+                            className="p-1 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                            title="Delete session"
                         >
-                          <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                         </button>
-                      </>
+                        </>
                     )}
-                  </div>
+                    </div>
                 </>
-              )}
+                )}
             </div>
-          ))}
-          
-          {sessions.filter(s => s.status === 'completed' || s.status === 'paused').length === 0 && (
-            <div className="text-center py-6">
-              <div className="text-4xl mb-2">⏳</div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
+            ))}
+            
+            {sessions.filter(s => s.status === 'completed' || s.status === 'paused').length === 0 && (
+            <div className="text-center py-4">
+                <div className="text-2xl mb-1">⏳</div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
                 No sessions yet
-              </p>
-              <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
                 Start your first timer or add manual time
-              </p>
+                </p>
             </div>
-          )}
+            )}
         </div>
-      </div>
+        </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Delete Session?</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              This action cannot be undone. Are you sure you want to delete this session?
+                This action cannot be undone. Are you sure you want to delete this session?
             </p>
             <div className="flex gap-3">
-              <button
+                <button
                 onClick={() => {
-                  if (sessionToDelete) deleteSession(sessionToDelete)
+                    if (sessionToDelete) deleteSession(sessionToDelete)
                 }}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition cursor-pointer"
-              >
+                >
                 Delete
-              </button>
-              <button
+                </button>
+                <button
                 onClick={() => {
-                  setShowDeleteConfirm(false)
-                  setSessionToDelete(null)
+                    setShowDeleteConfirm(false)
+                    setSessionToDelete(null)
                 }}
                 className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg transition cursor-pointer"
-              >
+                >
                 Cancel
-              </button>
+                </button>
             </div>
-          </div>
+            </div>
         </div>
-      )}
+        )}
     </div>
-  )
+    )
 }

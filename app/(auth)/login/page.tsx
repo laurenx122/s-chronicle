@@ -39,10 +39,12 @@ export default function Login() {
       <div className="glass rounded-3xl p-8 w-full max-w-md shadow-2xl transform transition-all hover:scale-[1.01]">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4 animate-float">⏱️</div>
-          <h1 className="text-4xl font-bold gradient-text">Welcome Back</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Sign in to continue tracking your productivity
-          </p>
+          <h1 className="text-3xl font-bold text-maroon-800 dark:text-maroon-300 text-center mb-2">
+            S-Chronicle
+            </h1>
+            <p className="text-center text-gray-500 dark:text-gray-400 mb-6 text-sm">
+            Track. Connect. Grow.
+            </p>
         </div>
 
         {/* Google Sign In Button */}

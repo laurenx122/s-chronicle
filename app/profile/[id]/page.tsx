@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth } from '@/context/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -18,7 +18,18 @@ interface Profile {
   avatar_bg?: string
 }
 
-export default function ProfilePage({ params }: { params: { id: string } }) {
+// Helper function to get display avatar
+const getDisplayAvatar = (avatarUrl: string | undefined, username: string) => {
+  if (!avatarUrl) return '👤'
+  if (avatarUrl.startsWith('http')) {
+    return username?.charAt(0)?.toUpperCase() || '👤'
+  }
+  return avatarUrl
+}
+
+export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  // Unwrap the params Promise using React.use()
+  const { id: userId } = use(params)
   const { user } = useAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -37,7 +48,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     loadProfile()
-  }, [params.id])
+  }, [userId])
 
   const loadProfile = async () => {
     setLoading(true)
@@ -45,7 +56,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', userId)
       .single()
 
     if (!profileError && profileData) {
@@ -55,7 +66,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
       setEditAvatar(profileData.avatar_url || '🌟')
       setEditAvatarBg(profileData.avatar_bg || 'from-yellow-400 to-yellow-600')
       
-      const isOwn = user?.id === params.id
+      const isOwn = user?.id === userId
       setIsOwnProfile(isOwn)
 
       if (!isOwn) {
@@ -64,17 +75,17 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
           .from('friends')
           .select('*')
           .or(`user_id.eq.${user?.id},friend_id.eq.${user?.id}`)
-          .or(`user_id.eq.${params.id},friend_id.eq.${params.id}`)
+          .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
           .eq('status', 'accepted')
 
-        setIsFriend(Boolean(friendData?.length))
+        setIsFriend(!!(friendData && friendData.length > 0))
       }
 
       // Get friend count
       const { count: friendCountData } = await supabase
         .from('friends')
         .select('*', { count: 'exact', head: true })
-        .or(`user_id.eq.${params.id},friend_id.eq.${params.id}`)
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
         .eq('status', 'accepted')
 
       setFriendCount(friendCountData || 0)
@@ -90,7 +101,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
               is_private
             )
           `)
-          .eq('user_id', params.id)
+          .eq('user_id', userId)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })
           .limit(20)
@@ -162,13 +173,15 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
     )
   }
 
+  const displayAvatar = getDisplayAvatar(profile.avatar_url, profile.username)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <nav className="glass sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link href="/dashboard" className="flex items-center gap-2">
             <span className="text-2xl">⏱️</span>
-            <span className="text-xl font-bold gradient-text">Tracker</span>
+            <span className="text-xl font-bold text-maroon-800 dark:text-maroon-300">Tracker</span>
           </Link>
           <div className="flex items-center gap-4">
             <ThemeToggle />
@@ -181,7 +194,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
             </Link>
             <Link 
               href="/dashboard" 
-              className="btn-primary text-sm py-1.5 px-4"
+              className="bg-maroon-600 hover:bg-maroon-700 text-white text-sm py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105"
             >
               Dashboard
             </Link>
@@ -194,8 +207,8 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         <div className="glass rounded-2xl p-6 md:p-8 shadow-xl card-hover">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="relative">
-              <div className={`w-28 h-28 rounded-full bg-gradient-to-br ${profile.avatar_bg || 'from-yellow-400 to-yellow-600'} flex items-center justify-center text-5xl shadow-lg transform transition-transform hover:scale-105`}>
-                {profile.avatar_url || '🌟'}
+              <div className={`w-28 h-28 rounded-full bg-gradient-to-br ${profile.avatar_bg || 'from-yellow-400 to-yellow-600'} flex items-center justify-center text-5xl shadow-lg transform transition-transform hover:scale-105 font-bold text-white`}>
+                {displayAvatar}
               </div>
               {isOwnProfile && (
                 <button
@@ -214,57 +227,57 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
                     type="text"
                     value={editUsername}
                     onChange={(e) => setEditUsername(e.target.value)}
-                    className="input-custom text-xl font-bold"
+                    className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200 text-xl font-bold"
                     placeholder="Username"
                   />
                   <textarea
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value)}
-                    className="input-custom"
+                    className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200"
                     rows={3}
                     placeholder="Tell us about yourself..."
                   />
                   <div className="flex gap-2">
-                    <button onClick={updateProfile} className="btn-primary flex items-center gap-2">
+                    <button onClick={updateProfile} className="bg-maroon-600 hover:bg-maroon-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2">
                       <Save className="w-4 h-4" /> Save
                     </button>
                     <button onClick={() => {
                       setEditing(false)
                       setShowAvatarPicker(false)
-                    }} className="btn-outline flex items-center gap-2">
+                    }} className="border-2 border-maroon-600 text-maroon-600 hover:bg-maroon-600 hover:text-white font-semibold py-2 px-4 rounded-lg transition-all duration-200 flex items-center gap-2">
                       <X className="w-4 h-4" /> Cancel
                     </button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <h1 className="text-3xl font-bold gradient-text">{profile.username}</h1>
+                  <h1 className="text-3xl font-bold text-maroon-800 dark:text-maroon-300">{profile.username}</h1>
                   {profile.bio && (
                     <p className="text-gray-600 dark:text-gray-400 mt-2">{profile.bio}</p>
                   )}
                   <div className="flex flex-wrap items-center gap-4 mt-3">
-                    <span className="badge-maroon flex items-center gap-1">
+                    <span className="bg-maroon-100 dark:bg-maroon-900 text-maroon-800 dark:text-maroon-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                       <Users className="w-4 h-4" /> {friendCount} {friendCount === 1 ? 'Friend' : 'Friends'}
                     </span>
                     {isOwnProfile && (
-                      <span className="badge-gold flex items-center gap-1">
+                      <span className="bg-gold-100 dark:bg-gold-900 text-gold-800 dark:text-gold-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <Shield className="w-4 h-4" /> Owner
                       </span>
                     )}
                     {!isOwnProfile && isFriend && (
-                      <span className="badge-pink flex items-center gap-1">
+                      <span className="bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <Heart className="w-4 h-4 fill-current" /> Friends
                       </span>
                     )}
                     {!isOwnProfile && !isFriend && (
-                      <span className="badge-maroon flex items-center gap-1">
+                      <span className="bg-maroon-100 dark:bg-maroon-900 text-maroon-800 dark:text-maroon-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                         <Users className="w-4 h-4" /> Not friends yet
                       </span>
                     )}
                     {isOwnProfile && (
                       <button
                         onClick={() => setEditing(true)}
-                        className="btn-gold text-sm flex items-center gap-2"
+                        className="bg-gold-500 hover:bg-gold-600 text-maroon-900 font-semibold text-sm py-1.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 flex items-center gap-2"
                       >
                         <Edit2 className="w-4 h-4" /> Edit Profile
                       </button>
@@ -351,9 +364,9 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
         {(isOwnProfile || isFriend) && (
           <div className="glass rounded-2xl p-6 mt-6 shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold gradient-text">Recent Sessions</h2>
+              <h2 className="text-2xl font-bold text-maroon-800 dark:text-maroon-300">Recent Sessions</h2>
               {!isOwnProfile && (
-                <span className="badge-pink flex items-center gap-1">
+                <span className="bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                   <Lock className="w-3 h-3" /> Only visible to friends
                 </span>
               )}
@@ -379,7 +392,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
                         <span className="font-semibold text-gray-800 dark:text-gray-200">
                           {session.name}
                         </span>
-                        <span className="badge-maroon text-xs">
+                        <span className="bg-maroon-100 dark:bg-maroon-900 text-maroon-800 dark:text-maroon-200 px-2 py-0.5 rounded-full text-xs font-medium">
                           {session.categories?.name || 'Uncategorized'}
                         </span>
                         {session.categories?.is_private && (

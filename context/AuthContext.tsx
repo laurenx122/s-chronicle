@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { User, AuthApiError } from '@supabase/supabase-js'
+import { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: User | null
@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, username: string) => Promise<void>
   signOut: () => Promise<void>
+  checkProfile: () => Promise<{ hasUsername: boolean; username?: string }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -32,6 +33,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const checkProfile = async () => {
+    if (!user) return { hasUsername: false }
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .single()
+
+    if (error || !data?.username) {
+      return { hasUsername: false }
+    }
+    return { hasUsername: true, username: data.username }
+  }
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
@@ -39,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      // First, create the auth user
       const { data: { user }, error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -49,14 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       
       if (error) {
-        // Check if it's a rate limit error
         if (error.message?.includes('rate limit')) {
           throw new Error('Too many registration attempts. Please wait 5-10 minutes before trying again with a different email.')
         }
         throw error
       }
       
-      // Then create the profile
       if (user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -70,8 +83,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (profileError) {
           console.error('Profile creation error:', profileError)
-          // If profile creation fails, the user might still exist but have no profile
-          // We'll try to sign them out
           await supabase.auth.signOut()
           throw new Error('Failed to create profile. Please try again.')
         }
@@ -88,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, checkProfile }}>
       {children}
     </AuthContext.Provider>
   )
