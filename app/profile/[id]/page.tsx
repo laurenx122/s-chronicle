@@ -67,7 +67,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
           .or(`user_id.eq.${params.id},friend_id.eq.${params.id}`)
           .eq('status', 'accepted')
 
-        setIsFriend(friendData && friendData.length > 0)
+        setIsFriend(Boolean(friendData?.length))
       }
 
       // Get friend count
