@@ -7,20 +7,17 @@ import { supabase } from '@/lib/supabaseClient'
 export default function AuthCallback() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
         console.log('🔐 Auth Callback: Getting session...')
         
-        // Get the session after OAuth redirect
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
           console.error('Session error:', sessionError)
           setError(sessionError.message)
-          setLoading(false)
           return
         }
 
@@ -43,7 +40,6 @@ export default function AuthCallback() {
         if (profileError || !profile) {
           console.log('📝 Creating profile for user...')
           
-          // Create profile
           const username = user.user_metadata?.user_name || 
                           user.user_metadata?.name?.replace(/\s/g, '').toLowerCase() ||
                           user.email?.split('@')[0] || 
@@ -62,7 +58,6 @@ export default function AuthCallback() {
           if (insertError) {
             console.error('❌ Profile creation error:', insertError)
             setError(`Failed to create profile: ${insertError.message}`)
-            setLoading(false)
             return
           }
           console.log('✅ Profile created successfully!')
@@ -75,7 +70,6 @@ export default function AuthCallback() {
       } catch (err) {
         console.error('❌ Callback error:', err)
         setError('An unexpected error occurred')
-        setLoading(false)
       }
     }
 

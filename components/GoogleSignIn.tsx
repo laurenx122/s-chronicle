@@ -9,12 +9,15 @@ export function GoogleSignIn() {
   const signInWithGoogle = async () => {
     setLoading(true)
     try {
-      console.log('Starting Google sign in...')
+      // Use the current origin (works on both localhost and production)
+      const redirectUrl = `${window.location.origin}/auth/callback`
+      
+      console.log('Redirect URL:', redirectUrl) // Debug log
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
         }
       })
       
@@ -26,7 +29,6 @@ export function GoogleSignIn() {
       }
       
       console.log('Google sign in initiated, redirecting...')
-      // The user will be redirected to Google
     } catch (error: any) {
       console.error('Google sign in error:', error)
       alert(error.message || 'Failed to sign in with Google')
