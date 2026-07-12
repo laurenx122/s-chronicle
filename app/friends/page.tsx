@@ -35,106 +35,155 @@ export default function FriendsPage() {
   }, [user])
 
   const loadFriends = async () => {
-    // Get friends where user is user_id
-    const { data: friends1 } = await supabase
-      .from('friends')
-      .select(`
-        friend_id,
-        status,
-        profiles:friend_id (
-          id,
-          username,
-          bio,
-          avatar_url,
-          avatar_bg
-        )
-      `)
-      .eq('user_id', user?.id)
-      .eq('status', 'accepted')
+    try {
+      // Get friends where user is user_id
+      const { data: friends1, error: e1 } = await supabase
+        .from('friends')
+        .select(`
+          friend_id,
+          status,
+          profiles:friend_id (
+            id,
+            username,
+            bio,
+            avatar_url,
+            avatar_bg
+          )
+        `)
+        .eq('user_id', user?.id)
+        .eq('status', 'accepted')
 
-    // Get friends where user is friend_id
-    const { data: friends2 } = await supabase
-      .from('friends')
-      .select(`
-        user_id,
-        status,
-        profiles:user_id (
-          id,
-          username,
-          bio,
-          avatar_url,
-          avatar_bg
-        )
-      `)
-      .eq('friend_id', user?.id)
-      .eq('status', 'accepted')
+      // Get friends where user is friend_id
+      const { data: friends2, error: e2 } = await supabase
+        .from('friends')
+        .select(`
+          user_id,
+          status,
+          profiles:user_id (
+            id,
+            username,
+            bio,
+            avatar_url,
+            avatar_bg
+          )
+        `)
+        .eq('friend_id', user?.id)
+        .eq('status', 'accepted')
 
-    const allFriends: Friend[] = []
-    
-    if (friends1) {
-      allFriends.push(...friends1.map(f => ({
-        ...f.profiles,
-        status: f.status
-      })))
+      const allFriends: Friend[] = []
+      
+      if (friends1 && !e1) {
+        // Fix: Properly type the map function
+        friends1.forEach((f: any) => {
+          if (f.profiles) {
+            allFriends.push({
+              id: f.profiles.id,
+              username: f.profiles.username || '',
+              bio: f.profiles.bio || '',
+              avatar_url: f.profiles.avatar_url || '🌟',
+              avatar_bg: f.profiles.avatar_bg || 'from-yellow-400 to-yellow-600',
+              status: f.status || 'accepted'
+            })
+          }
+        })
+      }
+      
+      if (friends2 && !e2) {
+        friends2.forEach((f: any) => {
+          if (f.profiles) {
+            allFriends.push({
+              id: f.profiles.id,
+              username: f.profiles.username || '',
+              bio: f.profiles.bio || '',
+              avatar_url: f.profiles.avatar_url || '🌟',
+              avatar_bg: f.profiles.avatar_bg || 'from-yellow-400 to-yellow-600',
+              status: f.status || 'accepted'
+            })
+          }
+        })
+      }
+      
+      setFriends(allFriends)
+    } catch (error) {
+      console.error('Error loading friends:', error)
     }
-    
-    if (friends2) {
-      allFriends.push(...friends2.map(f => ({
-        ...f.profiles,
-        status: f.status
-      })))
-    }
-    
-    setFriends(allFriends)
   }
 
   const loadPendingRequests = async () => {
-    const { data } = await supabase
-      .from('friends')
-      .select(`
-        user_id,
-        status,
-        profiles:user_id (
-          id,
-          username,
-          bio,
-          avatar_url,
-          avatar_bg
-        )
-      `)
-      .eq('friend_id', user?.id)
-      .eq('status', 'pending')
+    try {
+      const { data, error } = await supabase
+        .from('friends')
+        .select(`
+          user_id,
+          status,
+          profiles:user_id (
+            id,
+            username,
+            bio,
+            avatar_url,
+            avatar_bg
+          )
+        `)
+        .eq('friend_id', user?.id)
+        .eq('status', 'pending')
 
-    if (data) {
-      setPendingRequests(data.map(f => ({
-        ...f.profiles,
-        status: f.status
-      })))
+      if (data && !error) {
+        const formatted: Friend[] = []
+        data.forEach((f: any) => {
+          if (f.profiles) {
+            formatted.push({
+              id: f.profiles.id,
+              username: f.profiles.username || '',
+              bio: f.profiles.bio || '',
+              avatar_url: f.profiles.avatar_url || '🌟',
+              avatar_bg: f.profiles.avatar_bg || 'from-yellow-400 to-yellow-600',
+              status: f.status || 'pending'
+            })
+          }
+        })
+        setPendingRequests(formatted)
+      }
+    } catch (error) {
+      console.error('Error loading pending requests:', error)
     }
   }
 
   const loadSentRequests = async () => {
-    const { data } = await supabase
-      .from('friends')
-      .select(`
-        friend_id,
-        status,
-        profiles:friend_id (
-          id,
-          username,
-          bio,
-          avatar_url,
-          avatar_bg
-        )
-      `)
-      .eq('user_id', user?.id)
-      .eq('status', 'pending')
+    try {
+      const { data, error } = await supabase
+        .from('friends')
+        .select(`
+          friend_id,
+          status,
+          profiles:friend_id (
+            id,
+            username,
+            bio,
+            avatar_url,
+            avatar_bg
+          )
+        `)
+        .eq('user_id', user?.id)
+        .eq('status', 'pending')
 
-    if (data) {
-      setSentRequests(data.map(f => ({
-        ...f.profiles,
-        status: f.status
-      })))
+      if (data && !error) {
+        const formatted: Friend[] = []
+        data.forEach((f: any) => {
+          if (f.profiles) {
+            formatted.push({
+              id: f.profiles.id,
+              username: f.profiles.username || '',
+              bio: f.profiles.bio || '',
+              avatar_url: f.profiles.avatar_url || '🌟',
+              avatar_bg: f.profiles.avatar_bg || 'from-yellow-400 to-yellow-600',
+              status: f.status || 'pending'
+            })
+          }
+        })
+        setSentRequests(formatted)
+      }
+    } catch (error) {
+      console.error('Error loading sent requests:', error)
     }
   }
 
@@ -142,81 +191,101 @@ export default function FriendsPage() {
     if (!searchTerm.trim()) return
 
     setSearching(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .ilike('username', `%${searchTerm}%`)
-      .neq('id', user?.id)
-      .limit(10)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('username', `%${searchTerm}%`)
+        .neq('id', user?.id)
+        .limit(10)
 
-    if (data) {
-      // Check if already friends or have pending requests
-      const friendIds = new Set([
-        ...friends.map(f => f.id),
-        ...pendingRequests.map(f => f.id),
-        ...sentRequests.map(f => f.id)
-      ])
-      
-      setSearchResults(data.map(p => ({
-        ...p,
-        status: friendIds.has(p.id) ? 'already' : 'none'
-      })))
+      if (data && !error) {
+        const friendIds = new Set([
+          ...friends.map(f => f.id),
+          ...pendingRequests.map(f => f.id),
+          ...sentRequests.map(f => f.id)
+        ])
+        
+        const results: Friend[] = data.map((p: any) => ({
+          ...p,
+          status: friendIds.has(p.id) ? 'already' : 'none'
+        }))
+        setSearchResults(results)
+      }
+    } catch (error) {
+      console.error('Error searching users:', error)
     }
     setSearching(false)
   }
 
   const sendFriendRequest = async (friendId: string) => {
-    const { error } = await supabase
-      .from('friends')
-      .insert([{
-        user_id: user?.id,
-        friend_id: friendId,
-        status: 'pending'
-      }])
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .insert([{
+          user_id: user?.id,
+          friend_id: friendId,
+          status: 'pending'
+        }])
 
-    if (!error) {
-      alert('Friend request sent! 🎉')
-      setSearchResults([])
-      setSearchTerm('')
-      loadSentRequests()
+      if (!error) {
+        alert('Friend request sent! 🎉')
+        setSearchResults([])
+        setSearchTerm('')
+        loadSentRequests()
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error)
     }
   }
 
   const acceptFriendRequest = async (friendId: string) => {
-    const { error } = await supabase
-      .from('friends')
-      .update({ status: 'accepted' })
-      .eq('user_id', friendId)
-      .eq('friend_id', user?.id)
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .update({ status: 'accepted' })
+        .eq('user_id', friendId)
+        .eq('friend_id', user?.id)
 
-    if (!error) {
-      loadFriends()
-      loadPendingRequests()
+      if (!error) {
+        loadFriends()
+        loadPendingRequests()
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error)
     }
   }
 
   const rejectFriendRequest = async (friendId: string) => {
-    const { error } = await supabase
-      .from('friends')
-      .delete()
-      .eq('user_id', friendId)
-      .eq('friend_id', user?.id)
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .delete()
+        .eq('user_id', friendId)
+        .eq('friend_id', user?.id)
 
-    if (!error) {
-      loadPendingRequests()
+      if (!error) {
+        loadPendingRequests()
+      }
+    } catch (error) {
+      console.error('Error rejecting friend request:', error)
     }
   }
 
   const cancelFriendRequest = async (friendId: string) => {
-    const { error } = await supabase
-      .from('friends')
-      .delete()
-      .eq('user_id', user?.id)
-      .eq('friend_id', friendId)
-      .eq('status', 'pending')
+    try {
+      const { error } = await supabase
+        .from('friends')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('friend_id', friendId)
+        .eq('status', 'pending')
 
-    if (!error) {
-      loadSentRequests()
+      if (!error) {
+        loadSentRequests()
+      }
+    } catch (error) {
+      console.error('Error canceling friend request:', error)
     }
   }
 
@@ -261,7 +330,7 @@ export default function FriendsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
-                className="input-custom pl-10"
+                className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200 pl-10"
               />
             </div>
             <button
