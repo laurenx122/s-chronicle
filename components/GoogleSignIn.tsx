@@ -9,20 +9,27 @@ export function GoogleSignIn() {
   const signInWithGoogle = async () => {
     setLoading(true)
     try {
+      console.log('Starting Google sign in...')
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
         }
       })
       
-      if (error) throw error
+      if (error) {
+        console.error('Google sign in error:', error)
+        alert(error.message || 'Failed to sign in with Google')
+        setLoading(false)
+        return
+      }
       
+      console.log('Google sign in initiated, redirecting...')
       // The user will be redirected to Google
     } catch (error: any) {
       console.error('Google sign in error:', error)
       alert(error.message || 'Failed to sign in with Google')
-    } finally {
       setLoading(false)
     }
   }
@@ -31,7 +38,7 @@ export function GoogleSignIn() {
     <button
       onClick={signInWithGoogle}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 py-2.5 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       {loading ? (
         <span className="inline-block w-5 h-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></span>

@@ -86,10 +86,12 @@ export default function Dashboard() {
     }
   }
 
-  const handleSignOut = async () => {
+const handleSignOut = async () => {
+  if (confirm('Are you sure you want to sign out?')) {
     await signOut()
     router.push('/login')
   }
+}
 
   if (loading) {
     return (
@@ -121,11 +123,11 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Friends</span>
             </Link>
             <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 btn-primary text-sm py-1.5 px-4"
+            onClick={handleSignOut}
+            className="flex items-center gap-2 btn-primary text-sm py-1.5 px-4 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Sign Out</span>
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>

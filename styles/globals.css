@@ -148,3 +148,125 @@
 .badge-pink {
   @apply bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 px-3 py-1 rounded-full text-sm font-medium;
 }
+
+
+/* Ensure all interactive elements have pointer cursor */
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+a,
+[onclick],
+[tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
+/* Buttons should always have pointer cursor */
+.btn-primary,
+.btn-gold,
+.btn-pink,
+.btn-outline,
+.bg-maroon,
+.bg-gold,
+.bg-pink,
+.hover\:bg-gray-100,
+.hover\:bg-gray-50 {
+  cursor: pointer !important;
+}
+
+/* Form elements that are disabled shouldn't have pointer cursor */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+[disabled] {
+  cursor: not-allowed !important;
+}
+
+/* Inputs should have text cursor */
+input:not([type="submit"]):not([type="button"]):not([type="reset"]),
+textarea,
+select {
+  cursor: text;
+}
+
+/* Links should always have pointer cursor */
+a {
+  cursor: pointer !important;
+}
+
+/* Category items should have pointer cursor */
+.category-item,
+.category-button,
+[class*="category"] {
+  cursor: pointer !important;
+}
+
+
+/* Force cursor pointer on all interactive elements */
+button,
+[role="button"],
+a,
+[onclick],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+.tab,
+.nav-link,
+.category-item,
+[class*="cursor"] {
+  cursor: pointer !important;
+}
+
+/* All interactive elements in the timer */
+.timer-button,
+.btn-primary,
+.btn-gold,
+.btn-pink,
+.btn-outline,
+.bg-maroon-600,
+.bg-gold-500,
+.bg-pink-500,
+.hover\:bg-gray-100,
+.hover\:bg-gray-50,
+.group-hover\:opacity-100,
+.p-2,
+.p-1 {
+  cursor: pointer !important;
+}
+
+/* Buttons with specific classes */
+[class*="btn-"],
+[class*="button-"],
+[class*="-button"] {
+  cursor: pointer !important;
+}
+
+/* Icon buttons should have pointer */
+svg + button,
+button svg,
+.icon-button {
+  cursor: pointer !important;
+}
+
+/* Disabled elements */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+[disabled] {
+  cursor: not-allowed !important;
+}
+
+/* Input fields should have text cursor */
+input:not([type="submit"]):not([type="button"]):not([type="reset"]),
+textarea,
+select {
+  cursor: text !important;
+}
+
+/* Fix for Lucide icons inside buttons */
+button svg {
+  pointer-events: none;
+}
