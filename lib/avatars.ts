@@ -1,0 +1,18 @@
+export const AVATAR_PRESETS = [
+  { emoji: '🌟', name: 'Star', bg: 'from-yellow-400 to-yellow-600' },
+  { emoji: '🎯', name: 'Target', bg: 'from-red-400 to-red-600' },
+  { emoji: '🔥', name: 'Fire', bg: 'from-orange-400 to-orange-600' },
+  { emoji: '💪', name: 'Strong', bg: 'from-blue-400 to-blue-600' },
+  { emoji: '🎮', name: 'Gamer', bg: 'from-purple-400 to-purple-600' },
+  { emoji: '📚', name: 'Reader', bg: 'from-green-400 to-green-600' },
+  { emoji: '💻', name: 'Coder', bg: 'from-cyan-400 to-cyan-600' },
+  { emoji: '🏃', name: 'Runner', bg: 'from-pink-400 to-pink-600' },
+  { emoji: '🧠', name: 'Brain', bg: 'from-indigo-400 to-indigo-600' },
+  { emoji: '🎨', name: 'Artist', bg: 'from-rose-400 to-rose-600' },
+  { emoji: '🚀', name: 'Rocket', bg: 'from-violet-400 to-violet-600' },
+  { emoji: '🌈', name: 'Rainbow', bg: 'from-fuchsia-400 to-fuchsia-600' },
+  { emoji: '🦊', name: 'Fox', bg: 'from-orange-500 to-orange-700' },
+  { emoji: '🐉', name: 'Dragon', bg: 'from-emerald-400 to-emerald-600' },
+  { emoji: '🦄', name: 'Unicorn', bg: 'from-pink-300 to-purple-500' },
+  { emoji: '🌟', name: 'Star', bg: 'from-yellow-300 to-amber-500' },
+]
