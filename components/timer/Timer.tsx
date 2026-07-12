@@ -390,6 +390,32 @@ export function Timer({ categoryId, categoryName, categoryColor, onSessionComple
     }
   }
 
+  const handleCountdownComplete = async (durationSeconds: number) => {
+    if (!user || !categoryId) return
+    
+    const sessionName = `Countdown: ${formatTime(durationSeconds)}`
+    
+    const { data, error } = await supabase
+        .from('timer_sessions')
+        .insert([{
+        category_id: categoryId,
+        user_id: user.id,
+        name: sessionName,
+        start_time: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+        end_time: new Date().toISOString(),
+        duration_seconds: durationSeconds,
+        status: 'completed'
+        }])
+        .select()
+    
+    if (!error) {
+        await loadSessions()
+        if (onSessionComplete) onSessionComplete()
+    } else {
+        console.error('Failed to save countdown session:', error)
+    }
+    }
+
   if (loading) {
     return (
       <div className="glass rounded-2xl p-6 shadow-xl animate-pulse">
@@ -520,7 +546,11 @@ export function Timer({ categoryId, categoryName, categoryColor, onSessionComple
 
         {/* Countdown Section */}
         <div>
-            <CountdownTimer />
+            <CountdownTimer
+            categoryId={categoryId}
+            userId={user?.id}
+            onComplete={handleCountdownComplete}
+            />
         </div>
         </div>
 

@@ -7,18 +7,17 @@ import { Timer } from '@/components/timer/Timer'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { Plus, Users, LogOut, Layout, Lock, Clock, Calendar, TrendingUp } from 'lucide-react'
+import { Plus, Users, LogOut, Layout, Lock, Clock, Calendar, TrendingUp, Edit2 } from 'lucide-react'
 
 interface Category {
   id: string
   name: string
   is_private: boolean
   session_count?: number
-  total_time?: number // in seconds
+  total_time?: number
   color?: string
 }
 
-// Category colors - vibrant and varied
 const CATEGORY_COLORS = [
   'from-pink-500 to-rose-500',
   'from-purple-500 to-indigo-500',
@@ -46,6 +45,29 @@ export default function Dashboard() {
   const [totalOverallTime, setTotalOverallTime] = useState(0)
   const [checkingProfile, setCheckingProfile] = useState(true)
   const [displayName, setDisplayName] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarBg, setAvatarBg] = useState('from-yellow-400 to-yellow-600')
+
+  // Load profile data for navbar
+  const loadUserProfile = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, avatar_bg')
+        .eq('id', user.id)
+        .single()
+      if (!error && data) {
+        setDisplayName(data.username || user.email?.split('@')[0] || 'User')
+        setAvatarUrl(data.avatar_url || '')
+        setAvatarBg(data.avatar_bg || 'from-yellow-400 to-yellow-600')
+      } else {
+        setDisplayName(user.email?.split('@')[0] || 'User')
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err)
+    }
+  }
 
   useEffect(() => {
     if (!user) {
@@ -54,43 +76,18 @@ export default function Dashboard() {
     }
 
     const checkAndLoad = async () => {
-      // Check if user has a username
       const { hasUsername } = await checkProfile()
       if (!hasUsername) {
         router.push('/setup-username')
         return
       }
       setCheckingProfile(false)
-      
-      // Load user profile for display name
       await loadUserProfile()
       await loadCategories()
     }
 
     checkAndLoad()
   }, [user, router])
-
-  const loadUserProfile = async () => {
-    if (!user) return
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single()
-      
-      if (!error && data?.username) {
-        setDisplayName(data.username)
-      } else {
-        // Fallback to email or user metadata
-        setDisplayName(user?.user_metadata?.username || user?.email?.split('@')[0] || 'User')
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      setDisplayName(user?.email?.split('@')[0] || 'User')
-    }
-  }
 
   const loadCategories = async () => {
     setLoading(true)
@@ -103,7 +100,6 @@ export default function Dashboard() {
     if (!error && data) {
       const categoriesWithData = await Promise.all(
         data.map(async (category, index) => {
-          // Get session count and total time
           const { data: sessions, error: sessionsError } = await supabase
             .from('timer_sessions')
             .select('duration_seconds')
@@ -113,12 +109,10 @@ export default function Dashboard() {
 
           let totalTime = 0
           let sessionCount = 0
-
           if (!sessionsError && sessions) {
             sessionCount = sessions.length
             totalTime = sessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0)
           }
-
           return {
             ...category,
             session_count: sessionCount,
@@ -127,13 +121,9 @@ export default function Dashboard() {
           }
         })
       )
-      
       setCategories(categoriesWithData)
-      
-      // Calculate overall total time
       const overallTotal = categoriesWithData.reduce((acc, c) => acc + (c.total_time || 0), 0)
       setTotalOverallTime(overallTotal)
-      
       if (categoriesWithData.length > 0 && !selectedCategory) {
         setSelectedCategory(categoriesWithData[0].id)
       } else if (categoriesWithData.length === 0) {
@@ -145,24 +135,13 @@ export default function Dashboard() {
 
   const addCategory = async () => {
     if (!newCategoryName.trim()) return
-
     const colorIndex = categories.length % CATEGORY_COLORS.length
     const { data, error } = await supabase
       .from('categories')
-      .insert([{
-        user_id: user?.id,
-        name: newCategoryName,
-        is_private: isPrivate
-      }])
+      .insert([{ user_id: user?.id, name: newCategoryName, is_private: isPrivate }])
       .select()
-
     if (!error && data) {
-      setCategories([...categories, { 
-        ...data[0], 
-        session_count: 0, 
-        total_time: 0,
-        color: CATEGORY_COLORS[colorIndex]
-      }])
+      setCategories([...categories, { ...data[0], session_count: 0, total_time: 0, color: CATEGORY_COLORS[colorIndex] }])
       setNewCategoryName('')
       setIsPrivate(false)
       setSelectedCategory(data[0].id)
@@ -171,31 +150,14 @@ export default function Dashboard() {
   }
 
   const deleteCategory = async (categoryId: string) => {
-    const { error: sessionsError } = await supabase
-      .from('timer_sessions')
-      .delete()
-      .eq('category_id', categoryId)
-      .eq('user_id', user?.id)
-
-    if (sessionsError) {
-      alert('Failed to delete sessions. Please try again.')
-      return
-    }
-
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', categoryId)
-      .eq('user_id', user?.id)
-
+    await supabase.from('timer_sessions').delete().eq('category_id', categoryId).eq('user_id', user?.id)
+    const { error } = await supabase.from('categories').delete().eq('id', categoryId).eq('user_id', user?.id)
     if (!error) {
       const updatedCategories = categories.filter(c => c.id !== categoryId)
       setCategories(updatedCategories)
       if (selectedCategory === categoryId) {
         setSelectedCategory(updatedCategories.length > 0 ? updatedCategories[0].id : null)
       }
-    } else {
-      alert('Failed to delete category. Please try again.')
     }
   }
 
@@ -210,14 +172,21 @@ export default function Dashboard() {
     const hours = Math.floor(totalSeconds / 3600)
     const minutes = Math.floor((totalSeconds % 3600) / 60)
     const seconds = totalSeconds % 60
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s`
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`
-    } else {
-      return `${seconds}s`
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
+    if (minutes > 0) return `${minutes}m ${seconds}s`
+    return `${seconds}s`
+  }
+
+  // Helper to render avatar (supports URL or emoji)
+  const renderAvatar = (url: string, bg: string, size: string = 'w-8 h-8', textSize: string = 'text-sm') => {
+    if (url && url.startsWith('http')) {
+      return <img src={url} alt="Avatar" className={`${size} rounded-full object-cover`} />
     }
+    return (
+      <div className={`${size} rounded-full bg-gradient-to-br ${bg} flex items-center justify-center ${textSize} font-bold text-white`}>
+        {url || '👤'}
+      </div>
+    )
   }
 
   if (loading || checkingProfile) {
@@ -239,23 +208,26 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">⏱️</span>
             <div>
-              <h1 className="text-xl font-bold text-maroon-800 dark:text-maroon-300">
-                S-Chronicle
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
-                Track. Connect. Grow.
-              </p>
+              <h1 className="text-xl font-bold text-maroon-800 dark:text-maroon-300">S-Chronicle</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Track. Connect. Grow.</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:block">
-              {displayName ? `${displayName}'s Chronicles` : 'Chronicles'}
-            </span>
-            <ThemeToggle />
-            <Link 
-              href="/friends" 
-              className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-maroon-600 dark:hover:text-maroon-400 transition"
+            {/* Profile section with avatar and username */}
+            <Link
+              href={`/profile/${user?.id}`}
+              className="flex items-center gap-2 group cursor-pointer"
+              title="Edit profile"
             >
+              {renderAvatar(avatarUrl, avatarBg, 'w-8 h-8', 'text-sm')}
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:inline">
+                {displayName || 'User'}
+              </span>
+              <Edit2 className="w-3 h-3 text-gray-400 group-hover:text-maroon-500 dark:group-hover:text-maroon-400 transition-colors" />
+            </Link>
+
+            <ThemeToggle />
+            <Link href="/friends" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-maroon-600 dark:hover:text-maroon-400 transition">
               <Users className="w-5 h-5" />
               <span className="hidden sm:inline">Friends</span>
             </Link>
@@ -309,103 +281,48 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl p-4 shadow-xl sticky top-20 border border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold bg-gradient-to-r from-maroon-600 to-pink-500 bg-clip-text text-transparent">
-                  Categories
-                </h2>
-                <button
-                  onClick={() => setShowNewCategory(!showNewCategory)}
-                  className="p-2 bg-maroon-100 dark:bg-maroon-900 rounded-full hover:bg-maroon-200 dark:hover:bg-maroon-800 transition cursor-pointer"
-                >
+                <h2 className="text-lg font-bold bg-gradient-to-r from-maroon-600 to-pink-500 bg-clip-text text-transparent">Categories</h2>
+                <button onClick={() => setShowNewCategory(!showNewCategory)} className="p-2 bg-maroon-100 dark:bg-maroon-900 rounded-full hover:bg-maroon-200 dark:hover:bg-maroon-800 transition cursor-pointer">
                   <Plus className="w-4 h-4 text-maroon-600 dark:text-maroon-400" />
                 </button>
               </div>
-              
               {showNewCategory && (
                 <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-                  <input
-                    type="text"
-                    placeholder="Category name"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200 mb-2"
-                    autoFocus
-                  />
+                  <input type="text" placeholder="Category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon-500 dark:focus:ring-maroon-400 transition-all duration-200 mb-2" autoFocus />
                   <div className="flex items-center gap-2 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={isPrivate}
-                      onChange={(e) => setIsPrivate(e.target.checked)}
-                      id="private"
-                      className="rounded border-gray-300 text-maroon-600 focus:ring-maroon-500"
-                    />
-                    <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Private
-                    </label>
+                    <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} id="private" className="rounded border-gray-300 text-maroon-600 focus:ring-maroon-500" />
+                    <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-1"><Lock className="w-3 h-3" /> Private</label>
                   </div>
-                  <button
-                    onClick={addCategory}
-                    className="w-full bg-maroon-600 hover:bg-maroon-700 text-white text-sm py-2 rounded-lg transition cursor-pointer"
-                  >
-                    Create Category
-                  </button>
+                  <button onClick={addCategory} className="w-full bg-maroon-600 hover:bg-maroon-700 text-white text-sm py-2 rounded-lg transition cursor-pointer">Create Category</button>
                 </div>
               )}
-
               <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                 {categories.map((category) => {
                   const isSelected = selectedCategory === category.id
                   return (
                     <div key={category.id} className="group flex items-center gap-1">
-                      <button
-                        onClick={() => setSelectedCategory(category.id)}
-                        className={`flex-1 text-left p-3 rounded-xl transition-all duration-200 ${
-                          isSelected
-                            ? `bg-gradient-to-r ${category.color || 'from-maroon-600 to-maroon-700'} text-white shadow-lg`
-                            : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                        }`}
-                      >
+                      <button onClick={() => setSelectedCategory(category.id)} className={`flex-1 text-left p-3 rounded-xl transition-all duration-200 ${isSelected ? `bg-gradient-to-r ${category.color || 'from-maroon-600 to-maroon-700'} text-white shadow-lg` : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${category.color || 'from-gray-400 to-gray-500'}`}></div>
                             <span className="font-medium">{category.name}</span>
-                            {category.is_private && (
-                              <Lock className="w-3 h-3 text-gray-400" />
-                            )}
+                            {category.is_private && <Lock className="w-3 h-3 text-gray-400" />}
                           </div>
                           <div className="text-right">
-                            <div className={`text-xs font-semibold ${isSelected ? 'text-white/90' : 'text-maroon-600 dark:text-maroon-400'}`}>
-                              {formatTotalTime(category.total_time || 0)}
-                            </div>
-                            <div className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
-                              {category.session_count || 0} sessions
-                            </div>
+                            <div className={`text-xs font-semibold ${isSelected ? 'text-white/90' : 'text-maroon-600 dark:text-maroon-400'}`}>{formatTotalTime(category.total_time || 0)}</div>
+                            <div className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{category.session_count || 0} sessions</div>
                           </div>
                         </div>
                       </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${category.name}" and all its sessions?`)) {
-                            deleteCategory(category.id)
-                          }
-                        }}
-                        className="p-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
-                        title="Delete category"
-                      >
-                        <LogOut className="w-4 h-4 rotate-90" />
-                      </button>
+                      <button onClick={() => { if (confirm(`Are you sure you want to delete "${category.name}" and all its sessions?`)) deleteCategory(category.id) }} className="p-2 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition" title="Delete category"><LogOut className="w-4 h-4 rotate-90" /></button>
                     </div>
                   )
                 })}
-                
                 {categories.length === 0 && (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-2">📂</div>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      No categories yet
-                    </p>
-                    <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                      Create your first category to start tracking
-                    </p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">No categories yet</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Create your first category to start tracking</p>
                   </div>
                 )}
               </div>
@@ -425,12 +342,8 @@ export default function Dashboard() {
             ) : (
               <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg rounded-2xl p-8 text-center shadow-xl border border-gray-200 dark:border-gray-800">
                 <div className="text-6xl mb-4">⏱️</div>
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Select a category to start tracking
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Create a new category or select an existing one from the sidebar
-                </p>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Select a category to start tracking</h3>
+                <p className="text-gray-500 dark:text-gray-400">Create a new category or select an existing one from the sidebar</p>
               </div>
             )}
           </div>
